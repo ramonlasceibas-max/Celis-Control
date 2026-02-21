@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Celis Control V2 - Herrería</title>
+    
+    <meta name="theme-color" content="#111827">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        body { background-color: #111827; color: white; font-family: sans-serif; -webkit-tap-highlight-color: transparent; padding-bottom: 80px; }
+        .input-dark { background: #1f2937; border: 1px solid #374151; color: white; padding: 12px; border-radius: 8px; width: 100%; outline: none; transition: border-color 0.2s; }
+        .input-dark:focus { border-color: #06b6d4; }
+        .card { background: #1f2937; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #374151; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); }
+        .btn-primary { background: #06b6d4; color: black; font-weight: bold; padding: 12px; border-radius: 8px; width: 100%; text-transform: uppercase; }
+        .btn-secondary { background: #374151; color: white; padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; border: 1px solid #4b5563; }
+        .tab-btn { flex: 1; text-align: center; padding: 15px; color: #9ca3af; cursor: pointer; border-bottom: 2px solid transparent; font-size: 0.9rem; }
+        .tab-btn.active { color: #06b6d4; border-bottom-color: #06b6d4; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="fixed top-0 w-full bg-gray-900 border-b border-gray-800 z-50 px-4 py-3 flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-hammer text-cyan-400 text-xl"></i>
+            <h1 class="font-bold text-xl tracking-wide">CELIS <span class="text-cyan-400">CONTROL</span></h1>
+        </div>
+        <button onclick="borrarMemoria()" class="text-xs text-red-500 font-bold"><i class="fas fa-trash"></i> Reset</button>
+    </div>
+    <div class="h-16"></div>
+
+    <div class="flex bg-gray-900 sticky top-16 z-40 border-b border-gray-800">
+        <div onclick="showTab('calculadora')" class="tab-btn active" id="tab-calc"><i class="fas fa-calculator mb-1 block"></i> COTIZAR</div>
+        <div onclick="showTab('config')" class="tab-btn" id="tab-conf"><i class="fas fa-users mb-1 block"></i> TALLER Y EQUIPO</div>
+    </div>
+
+    <div id="view-config" class="p-4 hidden animate-fade-in-up">
+        
+        <div class="card border-l-4 border-yellow-500">
+            <h2 class="text-lg font-bold mb-1 text-yellow-400"><i class="fas fa-hard-hat mr-2"></i>Mi Cuadrilla (Sueldo Diario)</h2>
+            <p class="text-xs text-gray-400 mb-4">Lo que le pagas a los muchachos por día.</p>
+            
+            <div id="lista-trabajadores" class="space-y-3 mb-4">
+                </div>
+            
+            <button onclick="agregarTrabajador()" class="btn-secondary w-full text-yellow-400 border-yellow-700/50 hover:bg-yellow-900/20">
+                <i class="fas fa-plus mr-1"></i> Agregar Trabajador
+            </button>
+
+            <div class="mt-4 pt-3 border-t border-gray-700 flex justify-between items-center">
+                <span class="text-xs text-gray-400 uppercase">Costo Total Cuadrilla (Por Día)</span>
+                <span id="cfg-total-nomina" class="text-xl font-bold text-yellow-400">$0.00</span>
+            </div>
+        </div>
+
+        <div class="card border-l-4 border-cyan-500">
+            <h2 class="text-lg font-bold mb-1 text-cyan-400"><i class="fas fa-warehouse mr-2"></i>Gastos del Taller</h2>
+            <p class="text-xs text-gray-400 mb-4">Luz, renta, desgaste de máquinas y camioneta (Mensual).</p>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-gray-400">Total Gastos Fijos (Mensual)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-gray-500">$</span>
+                        <input type="number" id="cfg-gastos" class="input-dark pl-8" placeholder="Ej. 4000" onchange="guardarDatosLocales()">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400">Total Depreciación / Desgaste (Mensual)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-gray-500">$</span>
+                        <input type="number" id="cfg-depreciacion" class="input-dark pl-8" placeholder="Ej. 2500" onchange="guardarDatosLocales()">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400">Días que abres al mes</label>
+                    <input type="number" id="cfg-dias" class="input-dark" value="24" onchange="guardarDatosLocales()">
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-gray-700 flex justify-between items-center">
+                <span class="text-xs text-gray-400 uppercase">Costo Taller (Por Día)</span>
+                <span id="cfg-total-taller" class="text-xl font-bold text-cyan-400">$0.00</span>
+            </div>
+        </div>
+        
+        <div class="bg-black p-4 rounded-lg border border-gray-800 text-center">
+            <p class="text-[10px] text-gray-500 uppercase mb-1">Costo Operativo Total (Taller + Cuadrilla) por Día</p>
+            <p id="cfg-gran-total" class="text-3xl font-black text-white">$0.00</p>
+        </div>
+    </div>
+
+    <div id="view-calculadora" class="p-4">
+        
+        <div class="card">
+            <h2 class="text-lg font-bold mb-4 text-cyan-400"><i class="fas fa-file-invoice-dollar mr-2"></i>Simulador de Proyecto</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs text-gray-400 uppercase font-bold text-green-400">¿Cuánto le cobras al cliente?</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-green-500 font-bold">$</span>
+                        <input type="number" id="calc-precio" class="input-dark pl-8 border-green-900 text-lg" placeholder="0.00">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs text-gray-400 uppercase">Gasto Material</label>
+                        <div class="relative">
+                            <span class="absolute left-2 top-3 text-gray-500">$</span>
+                            <input type="number" id="calc-material" class="input-dark pl-6" placeholder="0">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-[#00E5FF] uppercase font-bold">Tiempo (Días)</label>
+                        <input type="number" id="calc-dias" class="input-dark text-center font-bold text-[#00E5FF]" placeholder="1">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="calcularRentabilidad()" class="btn-primary mt-6 shadow-lg shadow-cyan-500/20">
+                CALCULAR UTILIDAD REAL
+            </button>
+        </div>
+
+        <div id="resultado-card" class="hidden">
+            <div class="card border border-gray-700 bg-black">
+                <h3 class="text-center text-gray-400 text-xs mb-4 uppercase tracking-widest">Radiografía del Dinero</h3>
+                
+                <div class="w-48 h-48 mx-auto mb-6 relative">
+                    <canvas id="graficaResultado"></canvas>
+                    <div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
+                        <span class="text-[10px] text-gray-500">MARGEN</span>
+                        <span id="txt-margen" class="text-2xl font-black text-white">0%</span>
+                    </div>
+                </div>
+
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between border-b border-gray-800 pb-2">
+                        <span class="text-gray-400">Cobro Total</span>
+                        <span class="font-bold text-green-400" id="res-ingreso">$0.00</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400"><i class="fas fa-cube text-blue-400 w-5"></i>Fierros/Material</span>
+                        <span class="text-white" id="res-material">-$0.00</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400"><i class="fas fa-users text-yellow-400 w-5"></i>Raya Cuadrilla (<span id="res-dias-nom"></span>d)</span>
+                        <span class="text-yellow-400" id="res-nomina">-$0.00</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400"><i class="fas fa-bolt text-purple-400 w-5"></i>Desgaste Taller (<span id="res-dias-tall"></span>d)</span>
+                        <span class="text-purple-400" id="res-indirectos">-$0.00</span>
+                    </div>
+                    
+                    <div class="mt-4 pt-3 border-t border-gray-600 flex justify-between items-center bg-gray-900 -mx-4 px-4 py-3 rounded-b-lg">
+                        <span class="text-white font-bold text-xs uppercase">Lo que te queda libre:</span>
+                        <span class="text-3xl font-black text-cyan-400" id="res-utilidad">$0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Memoria Principal
+        let DB = {
+            gastos: 0,
+            depreciacion: 0,
+            diasMes: 24,
+            equipo: [
+                { id: 1, nombre: "Maestro", sueldo: 583 },
+                { id: 2, nombre: "Chalán", sueldo: 400 }
+            ]
+        };
+
+        let chartInstance = null;
+        let costoDiarioTaller = 0;
+        let costoDiarioNomina = 0;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarDatosLocales();
+        });
+
+        // Cambio de pestañas
+        function showTab(tab) {
+            document.getElementById('view-calculadora').classList.add('hidden');
+            document.getElementById('view-config').classList.add('hidden');
+            document.getElementById('tab-calc').classList.remove('active');
+            document.getElementById('tab-conf').classList.remove('active');
+
+            document.getElementById('view-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + (tab === 'calculadora' ? 'calc' : 'conf')).classList.add('active');
+        }
+
+        // ---- LÓGICA DE MEMORIA (LOCALSTORAGE) ----
+        function cargarDatosLocales() {
+            const guardado = localStorage.getItem('celis_control_v2');
+            if (guardado) {
+                DB = JSON.parse(guardado);
+            }
+            
+            // Pintar inputs de taller
+            document.getElementById('cfg-gastos').value = DB.gastos || '';
+            document.getElementById('cfg-depreciacion').value = DB.depreciacion || '';
+            document.getElementById('cfg-dias').value = DB.diasMes || 24;
+
+            renderEquipo();
+            recalcularCostosInternos();
+        }
+
+        function guardarDatosLocales() {
+            // Leer taller
+            DB.gastos = parseFloat(document.getElementById('cfg-gastos').value) || 0;
+            DB.depreciacion = parseFloat(document.getElementById('cfg-depreciacion').value) || 0;
+            DB.diasMes = parseFloat(document.getElementById('cfg-dias').value) || 24;
+
+            // Leer equipo
+            DB.equipo.forEach(t => {
+                const inputSueldo = document.getElementById(`sueldo-${t.id}`);
+                const inputNombre = document.getElementById(`nombre-${t.id}`);
+                if(inputSueldo) t.sueldo = parseFloat(inputSueldo.value) || 0;
+                if(inputNombre) t.nombre = inputNombre.value || 'Trabajador';
+            });
+
+            localStorage.setItem('celis_control_v2', JSON.stringify(DB));
+            recalcularCostosInternos();
+            
+            // Si la calculadora está abierta con números, la actualiza
+            if(!document.getElementById('resultado-card').classList.contains('hidden')) {
+                calcularRentabilidad();
+            }
+        }
+
+        // ---- LÓGICA DE EQUIPO ----
+        function renderEquipo() {
+            const container = document.getElementById('lista-trabajadores');
+            container.innerHTML = DB.equipo.map(t => `
+                <div class="flex gap-2 items-center bg-gray-900 p-2 rounded border border-gray-700">
+                    <input type="text" id="nombre-${t.id}" value="${t.nombre}" class="bg-transparent border-none text-white text-sm w-1/2 outline-none focus:text-cyan-400" onchange="guardarDatosLocales()">
+                    <div class="relative w-1/2">
+                        <span class="absolute left-2 top-2 text-gray-500 text-xs">$</span>
+                        <input type="number" id="sueldo-${t.id}" value="${t.sueldo}" class="bg-gray-800 border border-gray-600 text-white p-1 pl-5 rounded w-full text-sm" onchange="guardarDatosLocales()">
+                    </div>
+                    <button onclick="borrarTrabajador(${t.id})" class="text-red-500 px-2"><i class="fas fa-times"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function agregarTrabajador() {
+            const nuevoId = DB.equipo.length > 0 ? Math.max(...DB.equipo.map(t => t.id)) + 1 : 1;
+            DB.equipo.push({ id: nuevoId, nombre: "Nuevo Ayudante", sueldo: 0 });
+            renderEquipo();
+            guardarDatosLocales();
+        }
+
+        function borrarTrabajador(id) {
+            DB.equipo = DB.equipo.filter(t => t.id !== id);
+            renderEquipo();
+            guardarDatosLocales();
+        }
+
+        function recalcularCostosInternos() {
+            // Taller
+            const totalMensualTaller = DB.gastos + DB.depreciacion;
+            costoDiarioTaller = DB.diasMes > 0 ? (totalMensualTaller / DB.diasMes) : 0;
+            
+            // Nómina
+            costoDiarioNomina = DB.equipo.reduce((suma, t) => suma + t.sueldo, 0);
+
+            // Pintar resumen en Config
+            document.getElementById('cfg-total-taller').innerText = formatMoney(costoDiarioTaller);
+            document.getElementById('cfg-total-nomina').innerText = formatMoney(costoDiarioNomina);
+            document.getElementById('cfg-gran-total').innerText = formatMoney(costoDiarioTaller + costoDiarioNomina);
+        }
+
+        // ---- LÓGICA DE CALCULADORA ----
+        function calcularRentabilidad() {
+            const precio = parseFloat(document.getElementById('calc-precio').value) || 0;
+            const material = parseFloat(document.getElementById('calc-material').value) || 0;
+            const dias = parseFloat(document.getElementById('calc-dias').value) || 0;
+
+            if (precio === 0) {
+                Swal.fire({icon: 'warning', title: 'Falta el precio', text: 'Ingresa cuánto le vas a cobrar al cliente.', confirmButtonColor: '#06b6d4', background: '#111', color: '#fff'});
+                return;
+            }
+            if (dias === 0) {
+                Swal.fire({icon: 'warning', title: 'Falta el tiempo', text: 'Ingresa cuántos días te vas a tardar (ej. 1, 3, 5).', confirmButtonColor: '#06b6d4', background: '#111', color: '#fff'});
+                return;
+            }
+
+            // Aquí sucede la magia automática
+            const totalNomina = costoDiarioNomina * dias;
+            const totalTaller = costoDiarioTaller * dias;
+            
+            const totalGastos = material + totalNomina + totalTaller;
+            const utilidad = precio - totalGastos;
+            const margen = (utilidad / precio) * 100;
+
+            // Pintar Textos
+            document.getElementById('res-ingreso').innerText = formatMoney(precio);
+            document.getElementById('res-material').innerText = '-' + formatMoney(material);
+            document.getElementById('res-nomina').innerText = '-' + formatMoney(totalNomina);
+            document.getElementById('res-indirectos').innerText = '-' + formatMoney(totalTaller);
+            
+            document.getElementById('res-dias-nom').innerText = dias;
+            document.getElementById('res-dias-tall').innerText = dias;
+
+            const divUtilidad = document.getElementById('res-utilidad');
+            divUtilidad.innerText = formatMoney(utilidad);
+            divUtilidad.className = utilidad >= 0 ? 'text-3xl font-black text-cyan-400' : 'text-3xl font-black text-red-500';
+
+            const txtMargen = document.getElementById('txt-margen');
+            txtMargen.innerText = Math.round(margen) + '%';
+            txtMargen.className = margen >= 30 ? 'text-2xl font-black text-green-400' : (margen > 0 ? 'text-2xl font-black text-yellow-400' : 'text-2xl font-black text-red-500');
+
+            document.getElementById('resultado-card').classList.remove('hidden');
+            renderChart(material, totalNomina, totalTaller, utilidad > 0 ? utilidad : 0);
+            
+            document.getElementById('resultado-card').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // ---- GRÁFICA Y UTILIDADES ----
+        function renderChart(mat, nom, ind, util) {
+            const ctx = document.getElementById('graficaResultado').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Material', 'Raya Cuadrilla', 'Desgaste Taller', 'Utilidad Libre'],
+                    datasets: [{
+                        data: [mat, nom, ind, util],
+                        backgroundColor: ['#3b82f6', '#eab308', '#a855f7', '#06b6d4'],
+                        borderWidth: 0, hoverOffset: 4
+                    }]
+                },
+                options: {
+                    cutout: '75%', responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: function(c) { return ' ' + c.label + ': $' + c.raw.toLocaleString('es-MX', {minimumFractionDigits:2}); } } }
+                    }
+                }
+            });
+        }
+
+        function formatMoney(amount) {
+            return '$' + amount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function borrarMemoria() {
+            Swal.fire({
+                title: '¿Resetear App?',
+                text: "Se borrarán tus sueldos y gastos de taller guardados.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#374151',
+                confirmButtonText: 'Sí, borrar',
+                background: '#111', color: '#fff'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('celis_control_v2');
+                    location.reload();
+                }
+            });
+        }
+    </script>
+<script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registrado', reg))
+                    .catch(err => console.log('Error al registrar SW', err));
+            });
+        }
+    </script>
+</body>
+</html>
